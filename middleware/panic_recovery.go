@@ -3,8 +3,8 @@ package middleware
 import (
 	"net/http"
 
-	"github.com/PereRohit/util/response"
 	"github.com/PereRohit/util/log"
+	"github.com/PereRohit/util/response"
 )
 
 func RecoverPanic(next http.Handler) http.Handler {
