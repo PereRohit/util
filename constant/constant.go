@@ -5,8 +5,8 @@ const (
 	DEFAULT_SERVER_PORT = "8080"
 )
 
-const(
-	UserAgentSvc = "html-to-pdf-service"
+var(
+	UserAgentSvc = "util-service"
 )
 
 const(
