@@ -23,8 +23,12 @@ func Run(r http.Handler) {
 	if !found || port == "" {
 		port = constant.DEFAULT_SERVER_PORT
 	}
+	host, found := os.LookupEnv(constant.SERVER_HOST_ENV)
+	if !found || port == "" {
+		host = constant.DEFAULT_SERVER_HOST
+	}
 	s := &http.Server{
-		Addr:    fmt.Sprintf("%s:%s", "", port),
+		Addr:    fmt.Sprintf("%s:%s", host, port),
 		Handler: r,
 	}
 
@@ -46,4 +50,3 @@ func Run(r http.Handler) {
 		log.Error("Server error::", err.Error())
 	}
 }
-
