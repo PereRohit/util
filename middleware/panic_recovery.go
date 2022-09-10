@@ -1,0 +1,23 @@
+package middleware
+
+import (
+	"net/http"
+
+	"github.com/PereRohit/util/response"
+	"github.com/PereRohit/util/log"
+)
+
+func RecoverPanic(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if err := recover(); err != nil {
+				response.ToJson(w, http.StatusInternalServerError, "Oops! Something went wrong.", nil)
+				log.Warn("Panic occurred:", err)
+				if e, ok := err.(error); ok {
+					log.Warn("Panic occurred:", e.Error())
+				}
+			}
+		}()
+		next.ServeHTTP(w, r)
+	})
+}
