@@ -38,14 +38,14 @@ func Run(r http.Handler, svrConfig config.ServerConfig) {
 
 	// set log data
 	log.SetLogLevel(svrConfig.LogLevel)
-	logStaticData := ""
+	logSetter := log.GetStaticDataSetter()
 	if svrConfig.Name != "" {
-		logStaticData += "name: " + svrConfig.Name
+		logSetter.Add("service", svrConfig.Name)
 	}
 	if svrConfig.Version != "" {
-		logStaticData += " version: " + svrConfig.Version
+		logSetter.Add("version", svrConfig.Version)
 	}
-	log.SetStaticData(logStaticData)
+	logSetter.Set()
 
 	s := &http.Server{
 		Addr:    fmt.Sprintf("%s:%s", host, port),
@@ -60,18 +60,18 @@ func Run(r http.Handler, svrConfig config.ServerConfig) {
 		// wait for termination signal
 		<-sc
 
-		log.Info("Closing Server")
+		log.WithNoCaller().Info("Closing Server")
 		err := s.Shutdown(context.Background())
 		if err != nil {
 			panic(err)
 		}
-		log.Info("Server Closed!!")
+		log.WithNoCaller().Info("Server Closed!!")
 	}()
 
 	srvStop.Add(1)
-	log.Info(fmt.Sprintf("Starting server(%s)", s.Addr))
+	log.WithNoCaller().Info(fmt.Sprintf("Starting server(%s)", s.Addr))
 	err := s.ListenAndServe()
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
-		log.Error("Server error::", err.Error())
+		log.WithNoCaller().Error("Server error::", err.Error())
 	}
 }
