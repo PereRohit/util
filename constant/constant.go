@@ -14,3 +14,7 @@ var (
 const (
 	HealthRoute = "/health"
 )
+
+const (
+	RequestIdHeader = "request_id"
+)

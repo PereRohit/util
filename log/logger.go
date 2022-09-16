@@ -1,8 +1,12 @@
 package log
 
 import (
+	"fmt"
 	"log"
 	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
 	"sync"
 	"time"
 )
@@ -31,35 +35,83 @@ const (
 	levelError
 )
 
+const (
+	timeFormat = "2006-01-02 15:04:05"
+)
+
 var (
 	selectedLogLevel = levelInfo
-	staticData       = ""
+	staticData       = "| "
 
 	logStaticDataSet sync.Once
 )
 
-func Info(v ...any) {
-	if selectedLogLevel <= levelInfo {
-		log.New(os.Stdout, "INF: "+time.Now().UTC().String()+" | "+staticData, flags).Println(v...)
+func newLoggerWithCaller(lvl string, noCallerAttached bool) *log.Logger {
+	callStackSkip := 3
+	withCaller := ""
+	if !noCallerAttached {
+		if _, caller, line, ok := runtime.Caller(callStackSkip); ok {
+			withCaller = fmt.Sprintf("caller:%s:%d | ", filepath.Base(caller), line)
+		}
 	}
+	return log.New(os.Stdout, "["+time.Now().UTC().Format(timeFormat)+"] "+lvl+" "+staticData+withCaller, flags)
+}
+
+type T interface {
+	Info(v ...any)
+	Warn(v ...any)
+	Error(v ...any)
+	Debug(v ...any)
+}
+
+type internalLog struct {
+	noCallerAttached bool
+}
+
+func (i internalLog) Info(v ...any) {
+	if selectedLogLevel <= levelInfo {
+		newLoggerWithCaller("INF", i.noCallerAttached).Println(v...)
+	}
+}
+
+func (i internalLog) Warn(v ...any) {
+	if selectedLogLevel <= levelWarn {
+		newLoggerWithCaller("WRN", i.noCallerAttached).Println(v...)
+	}
+}
+
+func (i internalLog) Error(v ...any) {
+	if selectedLogLevel <= levelError {
+		newLoggerWithCaller("ERR", i.noCallerAttached).Println(v...)
+	}
+}
+
+func (i internalLog) Debug(v ...any) {
+	if selectedLogLevel <= levelDebug {
+		newLoggerWithCaller("DBG", i.noCallerAttached).Println(v...)
+	}
+}
+
+func WithNoCaller() T {
+	return &internalLog{
+		noCallerAttached: true,
+	}
+}
+
+func Info(v ...any) {
+	internalLog{}.Info(v...)
 }
 
 func Warn(v ...any) {
-	if selectedLogLevel <= levelWarn {
-		log.New(os.Stdout, "WRN: "+time.Now().UTC().String()+" | "+staticData, flags).Println(v...)
-	}
+	internalLog{}.Warn(v...)
 }
 
 func Error(v ...any) {
-	if selectedLogLevel <= levelError {
-		log.New(os.Stdout, "ERR: "+time.Now().UTC().String()+" | "+staticData, flags).Println(v...)
-	}
+	internalLog{}.Error(v...)
 }
 
 func Debug(v ...any) {
-	if selectedLogLevel <= levelDebug {
-		log.New(os.Stdout, "DBG: "+time.Now().UTC().String()+" | "+staticData, flags).Println(v...)
-	}
+	internalLog{}.Debug(v...)
 }
 
 func SetLogLevel(lvl string) {
@@ -75,11 +127,32 @@ func SetLogLevel(lvl string) {
 	}
 }
 
-func SetStaticData(data string) {
-	if data == "" {
-		return
+type Setter interface {
+	Add(key, value string) Setter
+	Set()
+}
+
+type set struct {
+	setBuffer *strings.Builder
+}
+
+func GetStaticDataSetter() Setter {
+	return &set{
+		setBuffer: &strings.Builder{},
 	}
+}
+
+func (s *set) Add(key, value string) Setter {
+	s.setBuffer.WriteString(fmt.Sprintf("%s:%s | ", key, value))
+	return s
+}
+
+func (s *set) Set() {
 	logStaticDataSet.Do(func() {
-		staticData = data + " | "
+		data := s.setBuffer.String()
+		if data == "" {
+			return
+		}
+		staticData += data
 	})
 }

@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/PereRohit/util/constant"
 	"github.com/PereRohit/util/log"
 )
@@ -27,6 +29,11 @@ func (w *respWriterWithStatus) Write(d []byte) (int, error) {
 
 func RequestHijacker(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		reqId := r.Header.Get(constant.RequestIdHeader)
+		if reqId == "" {
+			reqId = uuid.NewString()
+			r.Header.Set(constant.RequestIdHeader, reqId)
+		}
 		rT := *r
 		hijackedWriter := &respWriterWithStatus{-1, "", w}
 
@@ -35,6 +42,7 @@ func RequestHijacker(next http.Handler) http.Handler {
 		w.Header().Set("user-agent", constant.UserAgentSvc)
 		end := time.Now().Sub(start)
 
-		log.Info(fmt.Sprintf("%20s | %5s | %20s | %d | %10s | %s", rT.RemoteAddr, rT.Method, rT.URL.String(), hijackedWriter.status, end.String(), hijackedWriter.response))
+		log.WithNoCaller().Info(fmt.Sprintf("%20s | %-6s | %-25s | %d | %10s | %s:%s | %s",
+			rT.RemoteAddr, rT.Method, rT.URL.String(), hijackedWriter.status, end.String(), constant.RequestIdHeader, reqId, hijackedWriter.response))
 	})
 }
