@@ -15,7 +15,7 @@ import (
 	"github.com/PereRohit/util/log"
 )
 
-func Run(r http.Handler, svrConfig config.ServerConfig) {
+func Run(ctx context.Context, r http.Handler, svrConfig config.ServerConfig) {
 	// create channel to gracefully stop server
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, os.Interrupt, syscall.SIGHUP,
@@ -60,8 +60,12 @@ func Run(r http.Handler, svrConfig config.ServerConfig) {
 		// wait for termination signal
 		<-sc
 
+		if svrConfig.BeforeShutDownDo != nil {
+			svrConfig.BeforeShutDownDo()
+		}
+
 		log.WithNoCaller().Info("Closing Server")
-		err := s.Shutdown(context.Background())
+		err := s.Shutdown(ctx)
 		if err != nil {
 			panic(err)
 		}

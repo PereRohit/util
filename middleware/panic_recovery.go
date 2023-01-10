@@ -12,10 +12,11 @@ func RecoverPanic(next http.Handler) http.Handler {
 		defer func() {
 			if err := recover(); err != nil {
 				response.ToJson(w, http.StatusInternalServerError, "Oops! Something went wrong.", nil)
-				log.WithNoCaller().Warn("Panic occurred:", err)
 				if e, ok := err.(error); ok {
 					log.WithNoCaller().Warn("Panic occurred:", e.Error())
+					return
 				}
+				log.WithNoCaller().Warn("Panic occurred:", err)
 			}
 		}()
 		next.ServeHTTP(w, r)

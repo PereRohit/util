@@ -8,11 +8,12 @@ import (
 )
 
 type ServerConfig struct {
-	Host     string `json:"host"`
-	Port     string `json:"port"`
-	Version  string `json:"version"`
-	Name     string `json:"name"`
-	LogLevel string `json:"log_level"`
+	Host             string `json:"host"`
+	Port             string `json:"port"`
+	Version          string `json:"version"`
+	Name             string `json:"name"`
+	LogLevel         string `json:"log_level"`
+	BeforeShutDownDo func() `json:"-"`
 }
 
 func LoadFromJson(filepath string, cfg interface{}) error {
